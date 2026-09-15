@@ -1,0 +1,14 @@
+[Unit]
+Description=RFCOMM to Nostr relay bridge
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/rfcomm-relay --relay ws://localhost:7777
+Restart=on-failure
+RestartSec=5
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target

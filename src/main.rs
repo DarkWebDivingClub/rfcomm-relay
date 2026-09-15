@@ -102,9 +102,10 @@ async fn handle_relay(
     };
 
     let (mut ws_sink, mut ws_stream) = ws.split();
-    info!("[{}] Relay session started", device);
+    info!("[{}] Relay session started (JSONL framing)", device);
 
     let mut buf = vec![0u8; 65536];
+    let mut line_buf = String::new();
 
     loop {
         tokio::select! {
@@ -115,13 +116,22 @@ async fn handle_relay(
                         break;
                     }
                     Ok(n) => {
-                        let data = &buf[..n];
-                        info!("[{}] RFCOMM -> WS: {} bytes", device, n);
-                        if let Err(e) = ws_sink.send(Message::Text(
-                            String::from_utf8_lossy(data).into_owned()
-                        )).await {
-                            error!("[{}] WS send error: {}", device, e);
-                            break;
+                        let data = String::from_utf8_lossy(&buf[..n]);
+                        line_buf.push_str(&data);
+
+                        while let Some(pos) = line_buf.find('\n') {
+                            let line = line_buf[..pos].trim().to_string();
+                            line_buf = line_buf[pos + 1..].to_string();
+
+                            if line.is_empty() {
+                                continue;
+                            }
+
+                            info!("[{}] RFCOMM -> WS: {}", device, line);
+                            if let Err(e) = ws_sink.send(Message::Text(line)).await {
+                                error!("[{}] WS send error: {}", device, e);
+                                return;
+                            }
                         }
                     }
                     Err(e) => {
@@ -133,18 +143,16 @@ async fn handle_relay(
             msg = ws_stream.next() => {
                 match msg {
                     Some(Ok(Message::Text(text))) => {
-                        info!("[{}] WS -> RFCOMM: {} bytes", device, text.len());
-                        if let Err(e) = rfcomm.write_all(text.as_bytes()).await {
+                        info!("[{}] WS -> RFCOMM: {}", device, text);
+                        let mut line = text;
+                        line.push('\n');
+                        if let Err(e) = rfcomm.write_all(line.as_bytes()).await {
                             error!("[{}] RFCOMM write error: {}", device, e);
                             break;
                         }
                     }
                     Some(Ok(Message::Binary(data))) => {
-                        info!("[{}] WS -> RFCOMM: {} bytes (binary)", device, data.len());
-                        if let Err(e) = rfcomm.write_all(&data).await {
-                            error!("[{}] RFCOMM write error: {}", device, e);
-                            break;
-                        }
+                        info!("[{}] WS -> RFCOMM: {} bytes (binary, dropped)", device, data.len());
                     }
                     Some(Ok(Message::Close(_))) | None => {
                         info!("[{}] WebSocket closed", device);

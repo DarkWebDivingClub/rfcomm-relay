@@ -1,12 +1,9 @@
-use bluer::rfcomm::{Profile, Role};
+use bluer::rfcomm::{Listener, SocketAddr};
 use clap::Parser;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_tungstenite::tungstenite::Message;
-use uuid::Uuid;
-
-const SERVICE_UUID: &str = "fe31ece6-dd02-4279-8c42-b199a212df2c";
 
 #[derive(Parser)]
 #[command(name = "rfcomm-relay", about = "RFCOMM to Nostr relay bridge")]
@@ -18,6 +15,10 @@ struct Cli {
     /// WebSocket relay URL (default mode)
     #[arg(long, default_value = "ws://localhost:7777")]
     relay: String,
+
+    /// RFCOMM channel number (0 = auto-assign)
+    #[arg(long, default_value = "3")]
+    channel: u8,
 }
 
 #[tokio::main]
@@ -28,46 +29,32 @@ async fn main() -> bluer::Result<()> {
     let session = bluer::Session::new().await?;
     let adapter = session.default_adapter().await?;
     adapter.set_powered(true).await?;
-    adapter.set_discoverable(true).await?;
 
-    let uuid: Uuid = SERVICE_UUID.parse().expect("invalid UUID");
-    let profile = Profile {
-        uuid,
-        name: Some("rfcomm-relay".into()),
-        role: Some(Role::Server),
-        require_authentication: Some(false),
-        require_authorization: Some(false),
-        auto_connect: Some(true),
-        ..Default::default()
-    };
-
-    let mut handle = session.register_profile(profile).await?;
+    let addr = SocketAddr::new(adapter.address().await?, cli.channel);
+    let listener = Listener::bind(addr).await?;
+    let local = listener.as_ref().local_addr()?;
 
     let mode = if cli.echo { "echo" } else { "relay" };
-    info!("Registered RFCOMM service {} in {} mode", SERVICE_UUID, mode);
-    info!("Waiting for connections...");
+    info!("Listening on {} channel {} in {} mode", local.addr, local.channel, mode);
 
-    while let Some(req) = handle.next().await {
-        let device = req.device();
-        info!("Connection from {}", device);
-
-        let stream = match req.accept() {
-            Ok(s) => s,
+    loop {
+        let (stream, peer) = match listener.accept().await {
+            Ok(v) => v,
             Err(e) => {
-                error!("Failed to accept connection from {}: {}", device, e);
+                error!("Accept failed: {}", e);
                 continue;
             }
         };
 
+        info!("Connection from {}", peer);
+
         if cli.echo {
-            tokio::spawn(handle_echo(stream, device));
+            tokio::spawn(handle_echo(stream, peer.addr));
         } else {
             let relay_url = cli.relay.clone();
-            tokio::spawn(handle_relay(stream, device, relay_url));
+            tokio::spawn(handle_relay(stream, peer.addr, relay_url));
         }
     }
-
-    Ok(())
 }
 
 async fn handle_echo(mut stream: bluer::rfcomm::Stream, device: bluer::Address) {

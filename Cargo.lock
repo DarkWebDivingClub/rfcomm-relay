@@ -898,7 +898,6 @@ dependencies = [
  "log",
  "tokio",
  "tokio-tungstenite",
- "uuid",
 ]
 
 [[package]]

@@ -6,7 +6,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_tungstenite::tungstenite::Message;
 
 #[derive(Parser)]
-#[command(name = "rfcomm-relay", about = "RFCOMM to Nostr relay bridge")]
+#[command(name = "rfcomm-relay", about = "RFCOMM to Nostr relay bridge", version)]
 struct Cli {
     /// Run in echo mode (reflect received data back)
     #[arg(long)]

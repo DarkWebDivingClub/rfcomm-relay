@@ -2,6 +2,8 @@
 name = "rfcomm-relay"
 version = "0.1.0"
 edition = "2024"
+description = "RFCOMM to Nostr relay bridge"
+license = "GPL-3.0-or-later"
 
 [dependencies]
 bluer = { version = "0.17", features = ["rfcomm", "bluetoothd"] }

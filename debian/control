@@ -1,0 +1,15 @@
+Source: rfcomm-relay
+Section: utils
+Priority: optional
+Maintainer: Rene Malmgren <duke_h3@dwdc.club>
+Build-Depends: debhelper-compat (= 13), cargo, rustc, libdbus-1-dev, pkg-config
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: rfcomm-relay
+Architecture: amd64
+Depends: ${misc:Depends}, ${shlibs:Depends}, bluez
+Description: RFCOMM to Nostr relay bridge
+ Bridges Bluetooth RFCOMM connections to a local Nostr relay via
+ WebSocket. Used by KeyMaster to transport key operations over
+ Bluetooth Classic without IP networking.

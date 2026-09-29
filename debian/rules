@@ -1,0 +1,20 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	mkdir -p .cargo
+	cargo vendor vendor > .cargo/config.toml
+
+override_dh_auto_build:
+	cargo build --frozen --release
+
+override_dh_auto_install:
+	install -D -m 755 target/release/rfcomm-relay \
+		debian/rfcomm-relay/usr/bin/rfcomm-relay
+	install -D -m 644 rfcomm-relay.service \
+		debian/rfcomm-relay/usr/lib/systemd/system/rfcomm-relay.service
+
+override_dh_auto_test:
+

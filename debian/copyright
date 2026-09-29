@@ -1,0 +1,9 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: rfcomm-relay
+Source: https://github.com/DarkWebDivingClub/rfcomm-relay
+
+Files: *
+Copyright: 2026 Rene Malmgren
+License: GPL-3.0-or-later
+ This package is distributed under the terms of the GNU General
+ Public License, version 3 or later.

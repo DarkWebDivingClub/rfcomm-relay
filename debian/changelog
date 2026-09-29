@@ -1,0 +1,7 @@
+rfcomm-relay (0.1.0-1) resolute; urgency=medium
+
+  * Initial Debian package
+  * RFCOMM listener with JSONL framing
+  * WebSocket proxy to local Nostr relay
+
+ -- Rene Malmgren <duke_h3@dwdc.club>  Mon, 29 Sep 2026 12:00:00 +0200

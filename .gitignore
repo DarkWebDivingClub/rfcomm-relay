@@ -2,3 +2,10 @@
 *.log
 .cargo/config.toml
 vendor/
+
+# Debian build artifacts (packaging lives on packaging/* branches)
+debian/files
+debian/*.substvars
+debian/*.debhelper
+debian/debhelper-build-stamp
+debian/rfcomm-relay/
